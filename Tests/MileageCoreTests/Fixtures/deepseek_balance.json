@@ -1,0 +1,11 @@
+{
+  "is_available": true,
+  "balance_infos": [
+    {
+      "currency": "USD",
+      "total_balance": "14.20",
+      "granted_balance": "4.20",
+      "topped_up_balance": "10.00"
+    }
+  ]
+}

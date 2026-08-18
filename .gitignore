@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+*.app/
+DerivedData/
+.DS_Store
+*.xcuserstate
+
+# Per-machine tool settings, not project configuration.
+.claude/

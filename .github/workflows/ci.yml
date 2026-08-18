@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Test
+        run: swift test
+
+      # Catches breakage in the bundle assembly, which the unit tests never exercise.
+      - name: Assemble app bundle
+        run: make app
+
+      # --once needs live credentials, so CI can only check that the binary starts and
+      # reports "no credentials" rather than crashing.
+      - name: Smoke test
+        run: ./Mileage.app/Contents/MacOS/Mileage --once
