@@ -101,7 +101,7 @@ public final class AccountStore {
             switch provider {
             case .claude: discovered = try? LocalCLICredentials.claude()
             case .codex: discovered = try? LocalCLICredentials.codex()
-            case .deepseek: discovered = nil
+            case .deepseek, .openrouter: discovered = nil
             }
             guard let discovered else { continue }
 

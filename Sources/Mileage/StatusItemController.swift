@@ -90,12 +90,13 @@ final class StatusItemController {
     }
 
     /// Healthy uses `labelColor` rather than green so the bar stays quiet until something is
-    /// actually wrong — the same way the battery icon only turns red when it matters.
+    /// actually wrong — the same way the battery icon only turns red when it matters. The other
+    /// two come from the shared palette, which is contrast-checked; `systemOrange` and
+    /// `systemRed` are not legible enough at this size on a light menu bar.
     private func color(for severity: Formatting.Severity) -> NSColor {
         switch severity {
         case .healthy: .labelColor
-        case .warning: .systemOrange
-        case .critical: .systemRed
+        case .warning, .critical: severity.nsColor
         }
     }
 

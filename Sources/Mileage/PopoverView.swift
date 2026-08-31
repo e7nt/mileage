@@ -25,7 +25,7 @@ struct PopoverView: View {
             if let problem = store.storeProblem {
                 Label(problem, systemImage: "exclamationmark.octagon.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Formatting.Severity.critical.color)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -85,7 +85,7 @@ private struct ProviderSection: View {
             }
 
             if states.isEmpty {
-                Text(provider == .deepseek
+                Text(provider.usesAPIKey
                     ? "Add a platform API key to track credit."
                     : "No account yet.")
                     .font(.system(size: 10))
@@ -225,11 +225,5 @@ private struct GaugeRow: View {
         }
     }
 
-    private var tint: Color {
-        switch gauge.severity() {
-        case .healthy: .green
-        case .warning: .orange
-        case .critical: .red
-        }
-    }
+    private var tint: Color { gauge.severity().color }
 }

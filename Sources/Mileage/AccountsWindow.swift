@@ -69,7 +69,7 @@ struct AccountsView: View {
                 Text(provider.displayName)
                     .font(.headline)
                 Spacer()
-                Button(provider == .deepseek ? "Add key…" : "Add account…") {
+                Button(provider.usesAPIKey ? "Add key…" : "Add account…") {
                     flow = AddAccountFlow(provider: provider)
                 }
                 .controlSize(.small)
@@ -164,7 +164,7 @@ private struct AccountEditorRow: View {
             if let saveFailure {
                 Text(saveFailure)
                     .font(.caption2)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Formatting.Severity.critical.color)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -240,8 +240,8 @@ private struct AccountEditorRow: View {
     }
 
     private var statusColor: Color {
-        if state.needsAttention { return .red }
-        return state.snapshot == nil ? .secondary : .green
+        if state.needsAttention { return Formatting.Severity.critical.color }
+        return state.snapshot == nil ? .secondary : Formatting.Severity.healthy.color
     }
 }
 
@@ -275,7 +275,7 @@ final class AddAccountFlow: Identifiable {
     }
 
     var title: String {
-        provider == .deepseek ? "Add DeepSeek key" : "Add \(provider.displayName) account"
+        "Add \(provider.displayName) \(provider.usesAPIKey ? "key" : "account")"
     }
 
     // MARK: Claude
@@ -345,20 +345,24 @@ final class AddAccountFlow: Identifiable {
         phase = .start
     }
 
-    // MARK: DeepSeek
+    // MARK: API key providers
 
-    func saveDeepSeekKey(store: UsageStore) async -> Bool {
+    func saveAPIKey(store: UsageStore) async -> Bool {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
             phase = .failed("Enter an API key")
             return false
         }
+        guard let client = store.provider(for: provider) else {
+            phase = .failed("\(provider.displayName) does not take an API key")
+            return false
+        }
         phase = .working
         do {
             // Validate before storing so a bad key fails here, not silently at the next poll.
-            _ = try await DeepSeekProvider().fetch(credential: .apiKey(key))
+            _ = try await client.fetch(credential: .apiKey(key))
             _ = try store.accountStore.addAPIKeyAccount(
-                provider: .deepseek,
+                provider: provider,
                 key: key,
                 label: trimmedName
             )
@@ -402,7 +406,7 @@ private struct AddAccountSheet: View {
             if case let .failed(message) = flow.phase {
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Formatting.Severity.critical.color)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -423,7 +427,7 @@ private struct AddAccountSheet: View {
         switch flow.provider {
         case .claude: claude
         case .codex: codex
-        case .deepseek: deepseek
+        case .deepseek, .openrouter: apiKeyForm
         }
     }
 
@@ -471,17 +475,33 @@ private struct AddAccountSheet: View {
         }
     }
 
-    private var deepseek: some View {
+    private var apiKeyForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SecureField("sk-…", text: Bindable(flow).apiKey)
+            SecureField(keyPlaceholder, text: Bindable(flow).apiKey)
                 .textFieldStyle(.roundedBorder)
-            Text("Create one at platform.deepseek.com. Stored in your Keychain and validated before saving.")
+            Text("\(keyOrigin) Stored in your Keychain and validated before saving.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
             Button("Save") {
-                Task { if await flow.saveDeepSeekKey(store: store) { dismiss() } }
+                Task { if await flow.saveAPIKey(store: store) { dismiss() } }
             }
             .disabled(flow.apiKey.isEmpty || flow.phase == .working)
+        }
+    }
+
+    private var keyPlaceholder: String {
+        switch flow.provider {
+        case .openrouter: "sk-or-…"
+        default: "sk-…"
+        }
+    }
+
+    private var keyOrigin: String {
+        switch flow.provider {
+        case .openrouter:
+            "Create one at openrouter.ai/settings/keys, allowed to read your credits."
+        default:
+            "Create one at platform.deepseek.com."
         }
     }
 }

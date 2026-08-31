@@ -55,6 +55,7 @@ The only hosts contacted are:
 - `api.anthropic.com`
 - `chatgpt.com`
 - `api.deepseek.com`
+- `openrouter.ai`
 
 No telemetry, analytics, crash reporting, or update pings beyond an explicit user-initiated
 update check. Your usage numbers never leave your machine.

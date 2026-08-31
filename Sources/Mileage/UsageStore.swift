@@ -21,8 +21,8 @@ final class UsageStore {
         var primaryGauge: QuotaGauge? { snapshot?.primaryGauge }
     }
 
-    /// What one provider contributes to the menu bar: its worst account, so the bar stays three
-    /// items wide no matter how many accounts exist.
+    /// What one provider contributes to the menu bar: its worst account, so the bar stays one
+    /// item per provider no matter how many accounts exist.
     struct ProviderSummary: Identifiable {
         let provider: ProviderID
         let gauge: QuotaGauge?
@@ -51,6 +51,7 @@ final class UsageStore {
             .claude: ClaudeProvider(),
             .codex: CodexProvider(),
             .deepseek: DeepSeekProvider(),
+            .openrouter: OpenRouterProvider(),
         ]
     ) {
         self.accountStore = accountStore
@@ -131,7 +132,7 @@ final class UsageStore {
     /// What the menu bar actually draws. A provider with no accounts is omitted entirely rather
     /// than shown as a dead placeholder — the bar should report what you have, not advertise
     /// what you don't. Discovering the other providers is the popover's job, which always lists
-    /// all three with an Add button.
+    /// every one with an Add button.
     var barSummaries: [ProviderSummary] {
         providerSummaries.filter { $0.accountCount > 0 }
     }
@@ -190,15 +191,21 @@ final class UsageStore {
         states.filter { $0.account.provider == provider }
     }
 
+    /// The configured client for a provider, so the add-account flow can validate a pasted key
+    /// against the same object that will poll it.
+    func provider(for id: ProviderID) -> (any UsageProvider)? {
+        providers[id]
+    }
+
     // MARK: - Polling
 
     /// Base cadence per provider. Anthropic's endpoint is the strictest, so it gets the longest
-    /// interval; DeepSeek balances barely move.
+    /// interval; credit balances barely move.
     private func baseInterval(_ provider: ProviderID) -> TimeInterval {
         switch provider {
         case .claude: 300
         case .codex: 180
-        case .deepseek: 900
+        case .deepseek, .openrouter: 900
         }
     }
 

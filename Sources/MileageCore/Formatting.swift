@@ -4,7 +4,7 @@ import Foundation
 /// disagree about what a number means.
 public enum Formatting {
     /// How close an account is to running out. Drives colour in both the bar and the popover.
-    public enum Severity: Sendable, Equatable {
+    public enum Severity: Sendable, Equatable, CaseIterable {
         case healthy
         case warning
         case critical
@@ -33,21 +33,28 @@ public enum Formatting {
     /// Compact money for the menu bar: "$14", "$3.40", "$1.2k". Precision drops as the number
     /// grows so the bar width stays roughly constant.
     public static func compactCurrency(_ amount: Decimal, code: String) -> String {
-        let symbol = currencySymbol(for: code)
         let value = NSDecimalNumber(decimal: amount).doubleValue
-        if value >= 1000 {
-            return "\(symbol)\(String(format: "%.1f", value / 1000))k"
+        let magnitude = abs(value)
+        let digits: String = if magnitude >= 1000 {
+            "\(String(format: "%.1f", magnitude / 1000))k"
+        } else if magnitude >= 10 {
+            "\(Int(magnitude.rounded()))"
+        } else {
+            String(format: "%.2f", magnitude)
         }
-        if value >= 10 {
-            return "\(symbol)\(Int(value.rounded()))"
-        }
-        return "\(symbol)\(String(format: "%.2f", value))"
+        return signed(digits, code: code, isNegative: value < 0)
     }
 
     /// Full precision for the popover: "$14.20".
     public static func currency(_ amount: Decimal, code: String) -> String {
         let value = NSDecimalNumber(decimal: amount).doubleValue
-        return "\(currencySymbol(for: code))\(String(format: "%.2f", value))"
+        return signed(String(format: "%.2f", abs(value)), code: code, isNegative: value < 0)
+    }
+
+    /// An overdrawn balance reads as "-$3.50", never "$-3.50" — the sign belongs to the amount,
+    /// not to the symbol.
+    private static func signed(_ digits: String, code: String, isNegative: Bool) -> String {
+        "\(isNegative ? "-" : "")\(currencySymbol(for: code))\(digits)"
     }
 
     public static func currencySymbol(for code: String) -> String {

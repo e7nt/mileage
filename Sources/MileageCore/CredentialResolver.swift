@@ -70,8 +70,8 @@ public struct CredentialResolver {
             guard !discovered.isExpired else { throw ProviderError.unauthorized }
         case .codex:
             discovered = try LocalCLICredentials.codex()
-        case .deepseek:
-            throw ProviderError.missingCredentials("DeepSeek has no CLI to read")
+        case .deepseek, .openrouter:
+            throw ProviderError.missingCredentials("\(account.provider.displayName) has no CLI to read")
         }
         return Resolved(credential: discovered.credential, detectedLabel: discovered.label)
     }
@@ -84,7 +84,7 @@ public struct CredentialResolver {
                 refreshed = try await ClaudeOAuth.refresh(tokens, http: http)
             case .codex:
                 refreshed = try await CodexOAuth.refresh(tokens, http: http)
-            case .deepseek:
+            case .deepseek, .openrouter:
                 throw ProviderError.unauthorized
             }
         } catch {

@@ -177,6 +177,36 @@ struct DeepSeekParsingTests {
     }
 }
 
+// MARK: - OpenRouter
+
+@Suite("OpenRouter credit parsing")
+struct OpenRouterParsingTests {
+    @Test("Reports what is left, not what was bought or spent")
+    func reportsRemaining() throws {
+        let snapshot = try OpenRouterProvider().parse(fixture("openrouter_credits"))
+
+        #expect(snapshot.gauges.map(\.label) == ["credits"])
+        #expect(snapshot.primaryGauge?.kind == .currency(amount: Decimal(string: "14.2")!, code: "USD"))
+    }
+
+    @Test("An overdrawn account shows a negative balance rather than a floor of zero")
+    func showsOverdraft() throws {
+        let json = #"{"data":{"total_credits":10,"total_usage":13.5}}"#
+        let snapshot = try OpenRouterProvider().parse(Data(json.utf8))
+
+        #expect(snapshot.primaryGauge?.kind == .currency(amount: Decimal(string: "-3.5")!, code: "USD"))
+        #expect(snapshot.primaryGauge?.severity() == .critical)
+        #expect(snapshot.primaryGauge?.compactDisplay == "-$3.50")
+    }
+
+    @Test("A response without the credit figures is an error, not an empty snapshot")
+    func rejectsEmptyResponse() {
+        #expect(throws: ProviderError.self) {
+            try OpenRouterProvider().parse(Data("{}".utf8))
+        }
+    }
+}
+
 // MARK: - HTTP
 
 @Suite("HTTP error mapping")
@@ -256,6 +286,13 @@ struct FormattingTests {
         #expect(Formatting.compactCurrency(Decimal(string: "14.2")!, code: "USD") == "$14")
         #expect(Formatting.compactCurrency(Decimal(string: "1240")!, code: "USD") == "$1.2k")
         #expect(Formatting.compactCurrency(Decimal(string: "8")!, code: "CNY") == "¥8.00")
+    }
+
+    @Test("An overdrawn balance puts the sign before the symbol")
+    func negativeCurrency() {
+        #expect(Formatting.compactCurrency(Decimal(string: "-3.5")!, code: "USD") == "-$3.50")
+        #expect(Formatting.compactCurrency(Decimal(string: "-14.2")!, code: "USD") == "-$14")
+        #expect(Formatting.currency(Decimal(string: "-3.5")!, code: "USD") == "-$3.50")
     }
 
     @Test("Countdown reads as time remaining")

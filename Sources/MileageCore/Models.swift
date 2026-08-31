@@ -1,10 +1,11 @@
 import Foundation
 
-/// The three providers mileage tracks. Ordering here is the ordering used in the menu bar.
+/// The providers mileage tracks. Ordering here is the ordering used in the menu bar.
 public enum ProviderID: String, Codable, Sendable, CaseIterable, Identifiable {
     case claude
     case codex
     case deepseek
+    case openrouter
 
     public var id: String { rawValue }
 
@@ -13,21 +14,33 @@ public enum ProviderID: String, Codable, Sendable, CaseIterable, Identifiable {
         case .claude: "Claude Code"
         case .codex: "Codex"
         case .deepseek: "DeepSeek"
+        case .openrouter: "OpenRouter"
         }
     }
 
-    /// Starting glyph for the menu bar, overridable per provider in Settings. Kept to one
-    /// character so the bar stays narrow enough to fit three providers plus their numbers.
+    /// Starting glyph for the menu bar, overridable per provider in Settings. Kept as short as
+    /// it can be while staying distinct, so the bar fits every provider plus its numbers.
     public var defaultBarGlyph: String {
         switch self {
         case .claude: "C"
         case .codex: "X"
         case .deepseek: "D"
+        case .openrouter: "OR"
+        }
+    }
+
+    /// Whether this provider is added by pasting a platform API key rather than by signing in.
+    /// Decides the wording of the add flow and what the empty state suggests.
+    public var usesAPIKey: Bool {
+        switch self {
+        case .claude, .codex: false
+        case .deepseek, .openrouter: true
         }
     }
 }
 
-/// A gauge is either a consumed-percentage window (Claude, Codex) or a money balance (DeepSeek).
+/// A gauge is either a consumed-percentage window (Claude, Codex) or a money balance
+/// (DeepSeek, OpenRouter).
 /// Keeping both shapes in one type is what lets a single renderer handle every provider.
 public enum QuotaGaugeKind: Sendable, Equatable {
     case percentUsed(Double)
