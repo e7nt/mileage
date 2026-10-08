@@ -250,6 +250,9 @@ final class UsageStore {
         let now = Date()
         if let last = lastManualRefresh[id], now.timeIntervalSince(last) < 30 { return }
         lastManualRefresh[id] = now
+        if let account = accountStore.account(id), account.provider == .claude, account.source == .cli {
+            LocalCLICredentials.forgetCachedKeychainRead()
+        }
         Task { _ = await refresh(id) }
     }
 
@@ -326,6 +329,9 @@ final class UsageStore {
 
         case .unauthorized:
             let source = accountStore.account(id)?.source
+            if source == .cli, provider == .claude {
+                LocalCLICredentials.claudeKeychainTokenRejected()
+            }
             mutate(id) {
                 $0.errorText = source == .cli
                     ? "\(provider.displayName) sign-in expired — run the CLI once to refresh it"

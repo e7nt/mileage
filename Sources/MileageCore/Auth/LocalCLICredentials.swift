@@ -34,7 +34,7 @@ public enum LocalCLICredentials {
         home: URL = FileManager.default.homeDirectoryForCurrentUser
     ) throws -> Discovered {
         let fileData = try? Data(contentsOf: home.appending(path: ".claude/.credentials.json"))
-        let keychain = keychainSecret(service: "Claude Code-credentials")
+        let keychain = claudeKeychainCache.read()
 
         var sources: [Data] = []
         if let fileData { sources.append(fileData) }
@@ -51,7 +51,8 @@ public enum LocalCLICredentials {
         if case let .denied(status) = keychain, best?.isExpired ?? true {
             throw ProviderError.missingCredentials(
                 "mileage cannot read Claude Code's Keychain item (\(keychainMessage(status))). "
-                    + "Click Allow if macOS asks, or run any claude command to refresh the file copy."
+                    + "Click refresh and Allow when macOS asks, or run any claude command to "
+                    + "refresh the file copy."
             )
         }
 
@@ -124,6 +125,63 @@ public enum LocalCLICredentials {
     }
 
     // MARK: - Keychain
+
+    /// Claude Code's Keychain item belongs to Claude Code, so every read by mileage can raise a
+    /// macOS access prompt — and Claude Code rewrites the item whenever it refreshes its token,
+    /// which discards any "Always Allow". Reading it on every poll meant a prompt every few
+    /// minutes, so the read is cached while its token is live, and otherwise repeated at most
+    /// every half hour unless the user explicitly asks for a refresh.
+    static let claudeKeychainCache = KeychainCache(service: "Claude Code-credentials")
+
+    /// The provider rejected the cached Claude token, so the next read after the throttle window
+    /// goes back to the Keychain even though the token has not reached its expiry.
+    public static func claudeKeychainTokenRejected() {
+        claudeKeychainCache.markRejected()
+    }
+
+    /// The user asked for a refresh, which is the one moment a Keychain prompt is expected.
+    public static func forgetCachedKeychainRead() {
+        claudeKeychainCache.forget()
+    }
+
+    final class KeychainCache: @unchecked Sendable {
+        private let service: String
+        private let minimumInterval: TimeInterval = 30 * 60
+        private let lock = NSLock()
+        private var cached: (read: KeychainRead, at: Date, rejected: Bool)?
+
+        init(service: String) {
+            self.service = service
+        }
+
+        func read(now: Date = Date()) -> KeychainRead {
+            lock.lock()
+            defer { lock.unlock() }
+
+            if let cached {
+                if now.timeIntervalSince(cached.at) < minimumInterval { return cached.read }
+                if case let .found(data) = cached.read, !cached.rejected,
+                   parseClaude(data)?.isExpired == false {
+                    return cached.read
+                }
+            }
+            let fresh = keychainSecret(service: service)
+            cached = (fresh, now, false)
+            return fresh
+        }
+
+        func markRejected() {
+            lock.lock()
+            defer { lock.unlock() }
+            cached?.rejected = true
+        }
+
+        func forget() {
+            lock.lock()
+            defer { lock.unlock() }
+            cached = nil
+        }
+    }
 
     /// Distinguishes "there is no such item" from "macOS refused us", because the two need
     /// completely different advice.
