@@ -63,9 +63,9 @@ struct AccountStorePersistenceTests {
         #expect(throws: AccountStoreError.self) {
             try store.add(Account(provider: .claude, source: .oauth, label: "work"))
         }
-        #expect(throws: AccountStoreError.self) {
-            _ = try store.adoptCLIAccounts()
-        }
+        // adoptCLIAccounts() goes through the same save(), but only writes when this machine
+        // has a signed-in Claude or Codex CLI, so asserting on it here passed or failed
+        // depending on whose machine ran the tests (it failed on every CI run).
 
         let afterwards = try String(contentsOf: fileURL, encoding: .utf8)
         #expect(afterwards == original)
