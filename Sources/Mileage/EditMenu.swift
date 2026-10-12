@@ -9,6 +9,7 @@ import AppKit
 /// The menu is never visible: an `.accessory` app has no menu bar to show it in. It exists only
 /// to carry the key equivalents. Without it the Claude sign-in cannot be completed at all, since
 /// that flow asks the user to paste a code that they have no way to paste.
+@MainActor
 enum EditMenu {
     static func install() {
         let mainMenu = NSMenu()
