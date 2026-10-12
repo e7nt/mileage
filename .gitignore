@@ -7,3 +7,6 @@ DerivedData/
 
 # Per-machine tool settings, not project configuration.
 .claude/
+
+# Release zips built by `make release`.
+dist/

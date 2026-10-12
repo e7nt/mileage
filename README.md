@@ -46,13 +46,48 @@ if you're overdrawn, because that's the one state worth acting on.
 Requires macOS 14+.
 
 ```sh
-git clone https://github.com/<you>/mileage.git
+curl -fsSL https://mileage.e7nt.com/install.sh | sh
+```
+
+This puts `Mileage.app` in `/Applications` (or `~/Applications` if that isn't writable),
+adds a `mileage` command, and starts the app. After that:
+
+```sh
+mileage --upgrade     # install the latest release, if there's a newer one
+mileage --version
+mileage --uninstall
+```
+
+Builds are ad-hoc signed, not yet notarized. That works here because files fetched with
+`curl` aren't quarantined, so Gatekeeper never stops them. One side effect: macOS asks again
+for Claude Code's Keychain item after each upgrade, since an ad-hoc signature changes with
+every build. A Developer ID signature will fix that.
+
+To build from source instead:
+
+```sh
+git clone https://github.com/e7nt/mileage.git
 cd mileage
 make run
 ```
 
 `make run` builds a release binary, assembles `Mileage.app`, ad-hoc signs it, and launches it.
-A Homebrew cask will follow once releases are notarized.
+
+## Releasing
+
+Push a version tag:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The **Release** workflow tests, builds a universal zip with that version stamped into the
+app, checks the app reports the same version, and publishes a GitHub Release. The **Site**
+workflow then redeploys [mileage.e7nt.com](https://mileage.e7nt.com) with `latest.txt` set
+to the new version, which is what `mileage --upgrade` compares against. Changes to
+`site/install.sh` deploy on their own when merged to `main`, without a new release.
+
+`make release VERSION=0.2.0` builds the same zip locally into `dist/`.
 
 ## First run
 

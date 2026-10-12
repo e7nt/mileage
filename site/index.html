@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mileage</title>
+  <meta name="description" content="A macOS menu bar gauge for your AI coding quotas.">
+  <style>
+    :root {
+      --background: #fbfaf7;
+      --text: #1d1d1b;
+      --muted: #6b6a66;
+      --code-background: #f0eee8;
+      --accent: #2f6f4f;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #161615;
+        --text: #ecebe6;
+        --muted: #9a9993;
+        --code-background: #22221f;
+        --accent: #7cc39a;
+      }
+    }
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    }
+    main { max-width: 640px; margin: 0 auto; padding: 72px 16px; }
+    h1 { font-size: 40px; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .gauge { font: 15px ui-monospace, Menlo, monospace; color: var(--accent); margin: 0 0 32px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 40px 0 8px; }
+    pre {
+      background: var(--code-background);
+      padding: 14px 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font: 14px/1.5 ui-monospace, Menlo, monospace;
+    }
+    p { margin: 0 0 12px; }
+    .muted { color: var(--muted); font-size: 15px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>mileage</h1>
+    <p class="gauge">C 90%&nbsp;&nbsp;X 25%&nbsp;&nbsp;D $14&nbsp;&nbsp;OR $14.20</p>
+    <p>A macOS menu bar gauge for your AI coding quotas: Claude Code, Codex, DeepSeek and
+      OpenRouter, across every account you use, at a glance.</p>
+
+    <h2>Install</h2>
+    <pre>curl -fsSL https://mileage.e7nt.com/install.sh | sh</pre>
+    <p class="muted">Needs macOS 14 or later. Installs Mileage.app and a <code>mileage</code> command.</p>
+
+    <h2>Upgrade</h2>
+    <pre>mileage --upgrade</pre>
+
+    <h2>Uninstall</h2>
+    <pre>mileage --uninstall</pre>
+
+    <p class="muted" style="margin-top: 40px">
+      <a href="install.sh">Read the installer</a> ·
+      <a href="https://github.com/e7nt/mileage">Source on GitHub</a> · MIT licensed
+    </p>
+  </main>
+</body>
+</html>

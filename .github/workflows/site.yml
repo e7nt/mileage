@@ -1,0 +1,55 @@
+name: Site
+
+# Deploys site/ to GitHub Pages (mileage.e7nt.com) with latest.txt set to the newest
+# GitHub Release. Runs after each successful release, and on installer changes so a fix
+# to install.sh ships without cutting a new version.
+#
+# Triggered by workflow_run rather than from the tag itself because the github-pages
+# environment only accepts deployments from main, and workflow_run always runs on main.
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ["site/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Everyone's install and upgrade runs this script, so don't publish a broken one.
+      - name: Lint installer
+        run: shellcheck site/install.sh
+
+      - name: Write latest.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)" \
+            || { echo "::error::no GitHub Release yet; push a v* tag first"; exit 1; }
+          echo "${tag#v}" > site/latest.txt
+          echo "latest.txt → ${tag#v}"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

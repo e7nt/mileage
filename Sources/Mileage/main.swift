@@ -51,7 +51,48 @@ func runOnce() async {
     }
 }
 
-if CommandLine.arguments.contains("--once") {
+/// Install, upgrade and uninstall all live in the hosted installer, so there is one copy of
+/// that logic and it can be fixed without shipping a new build. MILEAGE_SITE_URL points it at a
+/// local server for testing.
+func runInstaller(_ command: String) -> Never {
+    let installer = Process()
+    installer.executableURL = URL(fileURLWithPath: "/bin/sh")
+    installer.arguments = [
+        "-c",
+        "curl -fsSL \"${MILEAGE_SITE_URL:-https://mileage.e7nt.com}/install.sh\" | sh -s -- \(command)",
+    ]
+    do {
+        try installer.run()
+    } catch {
+        print("mileage: could not start the installer: \(error.localizedDescription)")
+        exit(1)
+    }
+    installer.waitUntilExit()
+    exit(installer.terminationStatus)
+}
+
+let arguments = CommandLine.arguments
+
+if arguments.contains("--version") {
+    // The installer runs this through a `mileage` symlink, which Bundle.main doesn't follow,
+    // so locate the bundle from the real executable (Mileage.app/Contents/MacOS/Mileage).
+    let appURL = Bundle.main.executableURL?.resolvingSymlinksInPath()
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let version = appURL.flatMap { Bundle(url: $0)?.infoDictionary?["CFBundleShortVersionString"] }
+    // Builds outside an app bundle (`swift run`) have no Info.plist.
+    print(version as? String ?? "dev")
+    exit(0)
+}
+
+if arguments.contains("--upgrade") {
+    runInstaller("upgrade")
+}
+
+if arguments.contains("--uninstall") {
+    runInstaller("uninstall")
+}
+
+if arguments.contains("--once") {
     await runOnce()
     exit(0)
 }
