@@ -7,7 +7,7 @@ what it does with them.
 
 | Secret | Location |
 |---|---|
-| API keys and OAuth grants mileage obtained itself | macOS Keychain, service `com.e7nt.mileage`, one item per account UUID |
+| API keys and OAuth grants mileage obtained itself | macOS Keychain, service `com.e7nt.mileage`, one item (`secrets`) holding every account's secret by UUID |
 | Claude Code OAuth token (imported account) | **Not stored.** Read from Claude Code's own Keychain item or `~/.claude/.credentials.json` at poll time |
 | Codex OAuth token (imported account) | **Not stored.** Read from `~/.codex/auth.json` at poll time |
 

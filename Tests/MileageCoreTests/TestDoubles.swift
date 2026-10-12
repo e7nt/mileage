@@ -45,11 +45,13 @@ final class InMemorySecretStore: SecretStoring, @unchecked Sendable {
     var failOnRead: InjectedFailure?
 
     private(set) var writeCount = 0
+    private(set) var readCount = 0
 
     func string(for account: String) throws -> String? {
         if let failOnRead { throw failOnRead }
         lock.lock()
         defer { lock.unlock() }
+        readCount += 1
         return storage[account]
     }
 
@@ -65,6 +67,13 @@ final class InMemorySecretStore: SecretStoring, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         storage[account] = nil
+    }
+
+    /// Every item name currently stored, for asserting on the layout rather than the values.
+    var storedAccounts: Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+        return Set(storage.keys)
     }
 
     /// Bypasses the injected failures, so a test can seed state and then arm the failure.

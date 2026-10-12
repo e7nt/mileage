@@ -21,7 +21,7 @@ public enum AccountStoreError: Error, LocalizedError, Equatable {
 /// The list of tracked accounts, plus their secrets.
 ///
 /// Metadata (which accounts exist, what they are called) is plain JSON on disk. Secrets never
-/// touch that file — they live in the Keychain under the account's UUID.
+/// touch that file — they live in the Keychain, keyed by the account's UUID (see BundledSecretStore).
 @MainActor
 public final class AccountStore {
     /// Whether the on-disk account list was understood. Anything other than `.loaded` after a
@@ -41,7 +41,7 @@ public final class AccountStore {
     private let secrets: any SecretStoring
 
     public init(
-        secrets: any SecretStoring = KeychainStore(),
+        secrets: any SecretStoring = BundledSecretStore(),
         directory: URL? = nil
     ) {
         self.secrets = secrets
