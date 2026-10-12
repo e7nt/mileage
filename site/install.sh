@@ -16,6 +16,10 @@ DOWNLOAD_URL="${MILEAGE_DOWNLOAD_URL:-https://github.com/e7nt/mileage/releases/d
 BUNDLE_ID="com.e7nt.mileage"
 
 say() { printf 'mileage: %s\n' "$*"; }
+
+# GitHub's download host sometimes holds a connection open without sending anything, and
+# curl would wait on it forever. Give up on a connection that stalls for 15s, and retry.
+fetch() { curl -fL --connect-timeout 10 --speed-limit 1 --speed-time 15 --retry 3 --retry-all-errors "$@"; }
 fail() { printf 'mileage: %s\n' "$*" >&2; exit 1; }
 
 installed_app() {
@@ -93,7 +97,7 @@ install_latest() {
     sw_major="$(sw_vers -productVersion | cut -d. -f1)"
     [ "$sw_major" -ge 14 ] || fail "needs macOS 14 or later"
 
-    latest="$(curl -fsSL "$SITE_URL/latest.txt" | tr -d '[:space:]')" \
+    latest="$(fetch -sS "$SITE_URL/latest.txt" | tr -d '[:space:]')" \
         || fail "could not reach $SITE_URL"
     [ -n "$latest" ] || fail "no release has been published yet"
 
@@ -114,8 +118,8 @@ install_latest() {
     work_dir="$(mktemp -d)"
     trap 'rm -rf "$work_dir"' EXIT
     zip="Mileage-$latest.zip"
-    curl -fsSL -o "$work_dir/$zip" "$DOWNLOAD_URL/v$latest/$zip" || fail "download failed"
-    curl -fsSL -o "$work_dir/$zip.sha256" "$DOWNLOAD_URL/v$latest/$zip.sha256" || fail "checksum download failed"
+    fetch -sS -o "$work_dir/$zip.sha256" "$DOWNLOAD_URL/v$latest/$zip.sha256" || fail "checksum download failed"
+    fetch --progress-bar -o "$work_dir/$zip" "$DOWNLOAD_URL/v$latest/$zip" || fail "download failed"
     (cd "$work_dir" && shasum -a 256 -c "$zip.sha256" >/dev/null) || fail "checksum mismatch, nothing was changed"
     ditto -x -k "$work_dir/$zip" "$work_dir/unpacked"
     [ -d "$work_dir/unpacked/Mileage.app" ] || fail "download didn't contain Mileage.app"
